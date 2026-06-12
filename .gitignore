@@ -1,0 +1,7 @@
+scansage.exe
+tmp_test/
+pages/
+
+# Test output PDFs (not the testdata/ fixture)
+*.pdf
+!testdata/test.pdf
