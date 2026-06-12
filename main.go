@@ -19,11 +19,16 @@ func main() {
 		Name:  "scansage",
 		Usage: "PDF → PNG → GLM-OCR → raw markdown pages",
 		UsageText: `scansage <input.pdf> [-o <dir>] [--ocr-url <url>] [--dpi <n>]
+  scansage skill install <user/repo>
+  scansage skill list
+  scansage skill run <name> -d <dir>
 
 Examples:
   scansage mydoc.pdf
   scansage mydoc.pdf -o ./output
-  scansage mydoc.pdf --ocr-url http://192.168.1.100:8080`,
+  scansage mydoc.pdf --ocr-url http://192.168.1.100:8080
+  scansage skill install Qxy0happy/scansage-skill-refine
+  scansage skill run refine -d ./output`,
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:    "output",
@@ -86,9 +91,9 @@ Examples:
 			{
 				Name:  "skill",
 				Usage: "manage post-processing skills",
-				UsageText: `scansage skill install <user/repo>    install a skill from GitHub releases
-  scansage skill list                      list installed skills
-  scansage skill run <name> [-d <dir>]     run a skill on output directory
+				UsageText: `scansage skill install <user/repo>
+  scansage skill list
+  scansage skill run <name> -d <dir>
 
 Examples:
   scansage skill install Qxy0happy/scansage-skill-refine
