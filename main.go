@@ -11,6 +11,7 @@ import (
 	"github.com/Qxy0happy/scansage/internal/ocr"
 	"github.com/Qxy0happy/scansage/internal/output"
 	"github.com/Qxy0happy/scansage/internal/render"
+	"github.com/Qxy0happy/scansage/internal/skill"
 )
 
 func main() {
@@ -56,7 +57,6 @@ Examples:
 			ocrURL := cmd.String("ocr-url")
 			dpi := cmd.Float("dpi")
 
-			// Step 1: Render
 			log.Printf("rendering %s at %.0f DPI ...", input, dpi)
 			pages, err := render.RenderAll(input, dpi)
 			if err != nil {
@@ -64,7 +64,6 @@ Examples:
 			}
 			log.Printf("rendered %d pages", len(pages))
 
-			// Step 2: OCR each page (serial)
 			results := make([]string, len(pages))
 			for i, png := range pages {
 				log.Printf("OCR page %d/%d ...", i+1, len(pages))
@@ -76,13 +75,80 @@ Examples:
 			}
 			log.Printf("OCR complete for %d pages", len(pages))
 
-			// Step 3: Write output
 			if err := output.WritePages(outDir, results); err != nil {
 				return fmt.Errorf("write output: %w", err)
 			}
 			log.Printf("output written to %s/pages/", outDir)
 
 			return nil
+		},
+		Commands: []*cli.Command{
+			{
+				Name:  "skill",
+				Usage: "manage post-processing skills",
+				UsageText: `scansage skill install <user/repo>    install a skill from GitHub releases
+  scansage skill list                      list installed skills
+  scansage skill run <name> [-d <dir>]     run a skill on output directory
+
+Examples:
+  scansage skill install Qxy0happy/scansage-skill-refine
+  scansage skill list
+  scansage skill run refine -d ./output`,
+
+				Commands: []*cli.Command{
+					{
+						Name:      "install",
+						Usage:     "install a skill from GitHub releases",
+						ArgsUsage: "<user/repo>",
+						Action: func(ctx context.Context, cmd *cli.Command) error {
+							repo := cmd.Args().First()
+							if repo == "" {
+								return fmt.Errorf("usage: scansage skill install <user/repo>")
+							}
+							return skill.Install(repo)
+						},
+					},
+					{
+						Name:  "list",
+						Usage: "list installed skills",
+						Action: func(ctx context.Context, cmd *cli.Command) error {
+							skills, err := skill.List()
+							if err != nil {
+								return err
+							}
+							if len(skills) == 0 {
+								fmt.Println("no skills installed")
+								return nil
+							}
+							fmt.Println("installed skills:")
+							for _, s := range skills {
+								fmt.Printf("  %s\n", s.Name)
+							}
+							return nil
+						},
+					},
+					{
+						Name:      "run",
+						Usage:     "run a skill on output directory",
+						ArgsUsage: "<name>",
+						Flags: []cli.Flag{
+							&cli.StringFlag{
+								Name:     "dir",
+								Aliases:  []string{"d"},
+								Usage:    "output directory (with pages/ inside)",
+								Required: true,
+							},
+						},
+						Action: func(ctx context.Context, cmd *cli.Command) error {
+							name := cmd.Args().First()
+							if name == "" {
+								return fmt.Errorf("usage: scansage skill run <name> -d <dir>")
+							}
+							return skill.Run(name, cmd.String("dir"))
+						},
+					},
+				},
+			},
 		},
 	}
 

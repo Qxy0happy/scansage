@@ -67,7 +67,24 @@ Output: `output/pages/page_NNN.md` (one file per page, raw OCR markdown).
 2. **OCR** — sends each PNG to llama.cpp GLM-OCR via OpenAI-compatible API
 3. **Output** — writes raw markdown to `pages/page_NNN.md`
 
-Post-processing (LLM cleanup, summarization, layout) is done externally by your own agent.
+Post-processing (LLM cleanup, summarization, layout) is done via skills.
+
+## Skills
+
+Skills are standalone executables that process the OCR output. They live in `~/.scansage/skills/`.
+
+```bash
+# Install a skill from GitHub releases
+scansage skill install <user/repo>
+
+# List installed skills
+scansage skill list
+
+# Run a skill on output directory
+scansage skill run <name> -d ./output
+```
+
+Skills receive `--dir <path>` pointing to the output directory and can read `pages/*.md`. This keeps post-processing (refine, abstract, layout) decoupled from the OCR pipeline.
 
 ## License
 
