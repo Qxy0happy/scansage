@@ -4,19 +4,56 @@ PDF → PNG → GLM-OCR → raw markdown pages.
 
 ## Install
 
+### Prerequisites
+
+- Go 1.21+
+- CGo (enabled by default in Go)
+- C compiler (gcc, clang, or MSVC)
+
+ScanSage uses [go-fitz](https://github.com/gen2brain/go-fitz) which bundles MuPDF — no extra library installation needed.
+
+### Install scansage
+
 ```bash
 go install github.com/Qxy0happy/scansage@v1.0.0
 ```
 
-Requires CGo and MuPDF (bundled with [go-fitz](https://github.com/gen2brain/go-fitz)).
+The binary will be placed at `$(go env GOPATH)/bin/scansage`. Make sure that directory is in your `PATH`.
+
+### Install llama.cpp (OCR sidecar)
+
+```bash
+# macOS (Homebrew)
+brew install llama.cpp
+
+# Windows (WinGet)
+winget install llama.cpp
+
+# Or download pre-built binary:
+# https://github.com/ggerganov/llama.cpp/releases
+```
+
+### Download GLM-OCR model
+
+```bash
+# llama.cpp will auto-download on first run:
+llama-server -hf ggml-org/GLM-OCR-GGUF
+
+# Or download manually from Hugging Face:
+# https://huggingface.co/ggml-org/GLM-OCR-GGUF
+```
 
 ## Usage
 
-```bash
-# 1. Start llama.cpp with GLM-OCR
-llama-server -hf ggml-org/GLM-OCR-GGUF
+Start llama.cpp server in one terminal:
 
-# 2. Run scansage
+```bash
+llama-server -hf ggml-org/GLM-OCR-GGUF
+```
+
+Run scansage in another:
+
+```bash
 scansage input.pdf
 scansage input.pdf -o ./output
 scansage input.pdf --ocr-url http://192.168.1.100:8080
