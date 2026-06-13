@@ -20,7 +20,7 @@ func main() {
 	cmd := &cli.Command{
 		Name:  "scansage",
 		Usage: "PDF → PNG → GLM-OCR → raw markdown pages",
-		UsageText: `scansage <input.pdf> [-o <dir>] [--ocr-url <url>] [--api-key <key>] [--model <name>] [--dpi <n>]
+		UsageText: `scansage <input.pdf> [-o <dir>] [--ocr-url <url>] [--api-key <key>] [--model <name>] [--dpi <dpi>] [-n <num>]
   scansage skill install <user/repo>
   scansage skill list
   scansage skill run <name> -d <dir>
@@ -62,9 +62,10 @@ Examples:
 				Usage: "PDF rendering DPI",
 			},
 			&cli.IntFlag{
-				Name:  "concurrency",
-				Value: 1,
-				Usage: "number of concurrent OCR requests (default 1 = serial)",
+				Name:    "concurrency-number",
+				Aliases: []string{"n"},
+				Value:   1,
+				Usage:   "number of concurrent OCR workers (default 1 = serial)",
 			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
@@ -81,7 +82,7 @@ Examples:
 			}
 			model := cmd.String("model")
 			dpi := cmd.Float("dpi")
-			concurrency := cmd.Int("concurrency")
+			concurrency := cmd.Int("concurrency-number")
 
 			log.Printf("rendering %s at %.0f DPI ...", input, dpi)
 			pngs, err := render.RenderAll(input, dpi)
