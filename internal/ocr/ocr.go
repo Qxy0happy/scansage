@@ -43,7 +43,7 @@ type chatResponse struct {
 	} `json:"choices"`
 }
 
-func OCRPage(baseURL, model string, pngData []byte) (string, error) {
+func OCRPage(baseURL, apiKey, model string, pngData []byte) (string, error) {
 	b64 := base64.StdEncoding.EncodeToString(pngData)
 	dataURL := "data:image/png;base64," + b64
 
@@ -66,7 +66,16 @@ func OCRPage(baseURL, model string, pngData []byte) (string, error) {
 	}
 
 	url := strings.TrimSuffix(baseURL, "/") + "/v1/chat/completions"
-	resp, err := httpClient.Post(url, "application/json", bytes.NewReader(body))
+	req, err := http.NewRequest(http.MethodPost, url, bytes.NewReader(body))
+	if err != nil {
+		return "", fmt.Errorf("create request: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+	if apiKey != "" {
+		req.Header.Set("Authorization", "Bearer "+apiKey)
+	}
+
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		return "", fmt.Errorf("http post %s: %w", url, err)
 	}
