@@ -31,6 +31,7 @@ type imgURL struct {
 }
 
 type chatRequest struct {
+	Model    string        `json:"model,omitempty"`
 	Messages []chatMessage `json:"messages"`
 }
 
@@ -42,7 +43,7 @@ type chatResponse struct {
 	} `json:"choices"`
 }
 
-func OCRPage(baseURL string, pngData []byte) (string, error) {
+func OCRPage(baseURL, model string, pngData []byte) (string, error) {
 	b64 := base64.StdEncoding.EncodeToString(pngData)
 	dataURL := "data:image/png;base64," + b64
 
@@ -55,6 +56,7 @@ func OCRPage(baseURL string, pngData []byte) (string, error) {
 	}
 
 	body, err := json.Marshal(chatRequest{
+		Model: model,
 		Messages: []chatMessage{
 			{Role: "user", Content: content},
 		},

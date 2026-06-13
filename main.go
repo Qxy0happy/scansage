@@ -18,7 +18,7 @@ func main() {
 	cmd := &cli.Command{
 		Name:  "scansage",
 		Usage: "PDF → PNG → GLM-OCR → raw markdown pages",
-		UsageText: `scansage <input.pdf> [-o <dir>] [--ocr-url <url>] [--dpi <n>]
+		UsageText: `scansage <input.pdf> [-o <dir>] [--ocr-url <url>] [--model <name>] [--dpi <n>]
   scansage skill install <user/repo>
   scansage skill list
   scansage skill run <name> -d <dir>
@@ -27,6 +27,7 @@ Examples:
   scansage mydoc.pdf
   scansage mydoc.pdf -o ./output
   scansage mydoc.pdf --ocr-url http://192.168.1.100:8080
+  scansage mydoc.pdf --model qwen3-vl
   scansage skill install Qxy0happy/scansage-skill-refine
   scansage skill run refine -d ./output`,
 		Flags: []cli.Flag{
@@ -40,6 +41,11 @@ Examples:
 				Name:  "ocr-url",
 				Value: "http://localhost:8080",
 				Usage: "llama.cpp OpenAI-compatible API URL",
+			},
+			&cli.StringFlag{
+				Name:  "model",
+				Value: "",
+				Usage: "model name passed to llama.cpp (default: GLM-OCR)",
 			},
 			&cli.FloatFlag{
 				Name:  "dpi",
@@ -60,6 +66,7 @@ Examples:
 
 			outDir := cmd.String("output")
 			ocrURL := cmd.String("ocr-url")
+			model := cmd.String("model")
 			dpi := cmd.Float("dpi")
 
 			log.Printf("rendering %s at %.0f DPI ...", input, dpi)
@@ -72,7 +79,7 @@ Examples:
 			results := make([]string, len(pages))
 			for i, png := range pages {
 				log.Printf("OCR page %d/%d ...", i+1, len(pages))
-				result, err := ocr.OCRPage(ocrURL, png)
+				result, err := ocr.OCRPage(ocrURL, model, png)
 				if err != nil {
 					return fmt.Errorf("ocr page %d: %w", i+1, err)
 				}

@@ -30,7 +30,7 @@ func TestOCRPage(t *testing.T) {
 	defer server.Close()
 
 	pngBytes := []byte("fake-png-data")
-	result, err := OCRPage(server.URL, pngBytes)
+	result, err := OCRPage(server.URL, "", pngBytes)
 	if err != nil {
 		t.Fatal(err)
 	}
