@@ -1,6 +1,7 @@
 scansage.exe
 tmp_test/
 pages/
+.codegraph/
 
 # Test output PDFs (not the testdata/ fixture)
 *.pdf
