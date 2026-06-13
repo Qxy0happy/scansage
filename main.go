@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/urfave/cli/v3"
 
 	"github.com/Qxy0happy/scansage/internal/ocr"
 	"github.com/Qxy0happy/scansage/internal/output"
+	"github.com/Qxy0happy/scansage/internal/queue"
 	"github.com/Qxy0happy/scansage/internal/render"
 	"github.com/Qxy0happy/scansage/internal/skill"
 )
@@ -62,7 +64,7 @@ Examples:
 			&cli.IntFlag{
 				Name:  "concurrency",
 				Value: 1,
-				Usage: "number of concurrent OCR requests (not yet implemented)",
+				Usage: "number of concurrent OCR requests (default 1 = serial)",
 			},
 		},
 		Action: func(ctx context.Context, cmd *cli.Command) error {
@@ -79,30 +81,65 @@ Examples:
 			}
 			model := cmd.String("model")
 			dpi := cmd.Float("dpi")
+			concurrency := cmd.Int("concurrency")
 
 			log.Printf("rendering %s at %.0f DPI ...", input, dpi)
-			pages, err := render.RenderAll(input, dpi)
+			pngs, err := render.RenderAll(input, dpi)
 			if err != nil {
 				return fmt.Errorf("render: %w", err)
 			}
-			log.Printf("rendered %d pages", len(pages))
+			log.Printf("rendered %d pages", len(pngs))
 
-			results := make([]string, len(pages))
-			for i, png := range pages {
-				log.Printf("OCR page %d/%d ...", i+1, len(pages))
-				result, err := ocr.OCRPage(ocrURL, apiKey, model, png)
-				if err != nil {
-					return fmt.Errorf("ocr page %d: %w", i+1, err)
+			lastIdx := output.LastPageIndex(outDir)
+			skipTo := lastIdx + 1
+			if lastIdx >= 0 {
+				log.Printf("resuming from page %d (found %d completed pages)", skipTo+1, lastIdx+1)
+			}
+
+			q := queue.New(concurrency, func(job queue.Job) (interface{}, error) {
+				i := job.Index
+				if i < skipTo {
+					return nil, nil
 				}
-				results[i] = result
-			}
-			log.Printf("OCR complete for %d pages", len(pages))
+				log.Printf("OCR page %d/%d ...", i+1, len(pngs))
+				result, err := ocr.OCRPage(ocrURL, apiKey, model, job.Data.([]byte))
+				if err != nil {
+					return nil, fmt.Errorf("page %d: %w", i+1, err)
+				}
+				if err := output.WritePage(outDir, i, result); err != nil {
+					return nil, fmt.Errorf("page %d write: %w", i+1, err)
+				}
+				return nil, nil
+			})
 
-			if err := output.WritePages(outDir, results); err != nil {
-				return fmt.Errorf("write output: %w", err)
+			start := time.Now()
+			total := 0
+			for i, png := range pngs {
+				if i < skipTo {
+					continue
+				}
+				q.Add(queue.Job{Index: i, Data: png})
+				total++
 			}
-			log.Printf("output written to %s/pages/", outDir)
 
+			results := q.Wait()
+			var errs []string
+			for _, r := range results {
+				if r.Err != nil {
+					errs = append(errs, r.Err.Error())
+				}
+			}
+			elapsed := time.Since(start).Round(time.Second)
+
+			if len(errs) > 0 {
+				log.Printf("completed %d/%d pages (%d failed, %s)", total-len(errs), total, len(errs), elapsed)
+				for _, e := range errs {
+					log.Printf("  error: %s", e)
+				}
+				return fmt.Errorf("processing incomplete, re-run to resume from failed pages")
+			}
+
+			log.Printf("OCR complete: %d pages in %s", total, elapsed)
 			return nil
 		},
 		Commands: []*cli.Command{

@@ -1,33 +1,51 @@
 package output
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
 )
 
-func TestWritePages(t *testing.T) {
-	tmpDir := t.TempDir()
-	pages := []string{
-		"# Page 1\n\nContent",
-		"# Page 2\n\nMore content",
-	}
-
-	err := WritePages(tmpDir, pages)
+func TestWritePage(t *testing.T) {
+	tmp := t.TempDir()
+	err := WritePage(tmp, 0, "# Page 1")
 	if err != nil {
 		t.Fatal(err)
 	}
+	data, err := os.ReadFile(filepath.Join(tmp, "pages", "page_001.md"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != "# Page 1" {
+		t.Fatalf("got %q", string(data))
+	}
+}
 
-	for i := 0; i < len(pages); i++ {
-		name := fmt.Sprintf("page_%03d.md", i+1)
-		path := filepath.Join(tmpDir, "pages", name)
-		data, err := os.ReadFile(path)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if string(data) != pages[i] {
-			t.Fatalf("%s: got %q, want %q", name, string(data), pages[i])
-		}
+func TestHasPage(t *testing.T) {
+	tmp := t.TempDir()
+	if HasPage(tmp, 0) {
+		t.Fatal("should not exist yet")
+	}
+	WritePage(tmp, 1, "hello")
+	if !HasPage(tmp, 1) {
+		t.Fatal("should exist")
+	}
+}
+
+func TestLastPageIndex(t *testing.T) {
+	tmp := t.TempDir()
+
+	// empty dir
+	if i := LastPageIndex(tmp); i != -1 {
+		t.Fatalf("expected -1, got %d", i)
+	}
+
+	// write pages 1 and 3 (skip 2)
+	WritePage(tmp, 0, "a")
+	WritePage(tmp, 2, "c")
+
+	// last is 3rd page → 0-indexed 2
+	if i := LastPageIndex(tmp); i != 2 {
+		t.Fatalf("expected 2, got %d", i)
 	}
 }
